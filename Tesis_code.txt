@@ -1,0 +1,873 @@
+# Load your data
+data = pd.read_excel("Companies_transpose_edited_2_final.xlsx")
+df = pd.DataFrame(data)
+df
+
+# --- Keep your original data info code for reference ---
+print(df.info())
+print(df.head())
+
+
+print(df.describe(include='all'))
+
+# --- 2. Definir tipos de datos por columna ---
+columns_types = {
+    # Strings
+    'Company': str,
+    'Country': str,
+    'Ticker': str,
+    'Moodys Credit Rating': str,
+    
+    # Integers
+    'Year': 'Int64',
+    'Years in Market': 'Int64',
+    'Volume': 'Int64',
+    'ESG_Committee': 'Int64',
+    'Developed': 'Int64',
+    'International_presence': 'Int64',
+    
+    # Floats
+    'Revenue': float,
+    'Net Income/Net Profit (Losses)': float,
+    'Total Assets': float,
+    'Current Market Cap': float,
+    'EBITDA': float,
+    'Net Debt': float,
+    'Total Equity': float,
+    'ROIC': float,
+    'EBIT': float,
+    'Net interest': float,
+    'CAPEX': float,
+    'Total Liabilities': float,
+    'Total Debt': float,
+    'Quick ratio': float,
+    'Cash and equiv': float,
+    'Mkt securities': float,
+    'Asset Turnover': float,
+    'Net marging': float,
+    'Debt/Equity': float,
+    'Log(Total Assets)': float,
+    'Ln(revenue)': float,
+    'ROE': float,
+    '(EBIT-CapEx)/Interest Expense': float,
+    'ROA': float,
+    'Debt to EBITDA': float,
+    'Debt Ratio': float,
+    'Debt/Book Capitalization': float,
+    'Debt/Equity Ratio': float,
+    'Debt/Total Capitalization': float,
+    '(Cash + Marketable Securities) / Debt': float,
+    'Market Cap to Revenue ratio': float,
+    '(P/B) ratio': float,
+    'GDP_per_Capita': float,
+    'Inflation_Rate': float,
+    'Real_GDP_Growth_Rate': float,
+    'ESG Risk Rating': float,
+    'Market Cap to EBITDA': float,
+    'R&D expense': float,
+}
+
+# --- 3. Reemplazar coma decimal si aplica ---
+for col in df.columns:
+    if df[col].dtype == object:
+        df[col] = df[col].astype(str).str.replace(',', '.', regex=False)
+
+# --- 4. Convertir columnas a sus tipos correspondientes ---
+for col, dtype in columns_types.items():
+    try:
+        # Conversión directa sin verificar 'boolean'
+        df[col] = pd.to_numeric(df[col], errors='coerce') if dtype in [float, 'Int64'] else df[col].astype(dtype)
+    except Exception as e:
+        print(f"Error converting column {col}: {e}")
+
+# --- 5. Verifica los resultados ---
+print(df.dtypes)
+print(df.head())
+
+
+# Filtrar las variables importantes
+important_variables = [
+    'Revenue', 'Net Income/Net Profit (Losses)', 'Total Assets', 'Current Market Cap', 'Volume',
+    'EBITDA', 'Net Debt', 'Total Equity', 'ROIC', 'EBIT', 'Net interest', 'CAPEX', 'Total Liabilities',
+    'Total Debt', 'Quick ratio', 'Cash and equiv', 'Mkt securities', 'Asset Turnover', 'Net marging',
+    'Debt/Equity', 'Log(Total Assets)', 'Ln(revenue)', 'ROE', '(EBIT-CapEx)/Interest Expense',
+    'ROA', 'Debt to EBITDA', 'Debt Ratio', 'Debt/Book Capitalization', 'Debt/Equity Ratio',
+    'Debt/Total Capitalization', '(Cash + Marketable Securities) / Debt', 'Market Cap to Revenue ratio',
+    '(P/B) ratio', 'Market Cap to EBITDA', 'R&D expense', 'GDP_per_Capita', 'Inflation_Rate',
+    'Real_GDP_Growth_Rate', 'ESG_Committee', 'International_presence', 'Years in Market',
+    'ESG Risk Rating', 'Moodys Credit Rating', 'Developed'
+]
+
+# Obtener la descripción de las variables importantes
+description = df[important_variables].describe(include='all')
+
+# Transponer la tabla
+description_transposed = description.T
+
+# Opcional: Renombrar las columnas para mayor claridad
+description_transposed = description_transposed.rename(columns={
+    'count': 'Number of observations',
+    'mean': 'Mean',
+    'std': 'Standard deviation',
+    'min': 'Minimum',
+    '25%': '25th Percentile',
+    '50%': 'Median',
+    '75%': '75th Percentile',
+    'max': 'Maximum',
+    'unique': 'Unique values',
+    'top': 'Most frequent value',
+    'freq': 'Frequency of most common value'
+})
+
+# Guardar la tabla transpuesta en un nuevo CSV
+description_transposed.to_csv('description_important_variables_transposed.csv')
+
+# Mostrar la tabla transpuesta
+description_df = pd.DataFrame(description_transposed)
+description_df
+
+df.columns = [col.replace(' ', '_').replace('/', '_').replace('(', '').replace(')', '').replace('-', '_').replace('+', 'plus').replace('&', 'and').replace('__', '_') for col in df.columns]
+
+
+
+plt.figure(figsize=(20, 10))
+sns.heatmap(df.isnull(), cbar=False, cmap='viridis')
+plt.title('Missing Data Pattern', fontsize=16)
+plt.xticks(rotation=90)
+plt.show()
+
+
+num_cols = df.select_dtypes(include=['float64', 'int64']).columns
+
+plt.figure(figsize=(20, 15))
+for i, col in enumerate(num_cols[:12], 1):  # First 12 numerical columns
+    plt.subplot(3, 4, i)
+    sns.histplot(df[col], kde=True, bins=30)
+    plt.title(f'Distribution of {col}')
+    plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+
+
+# Select categorical columns
+cat_cols = df.select_dtypes(include=['object']).columns
+
+# Check if there are any categorical columns to plot
+if len(cat_cols) == 0:
+    print("No categorical columns found in the DataFrame.")
+else:
+    plt.figure(figsize=(15, 10))
+    for i, col in enumerate(cat_cols, 1):
+        plt.subplot(1, len(cat_cols), i)
+        df[col].value_counts().plot(kind='bar')
+        plt.title(col)
+        plt.xticks(rotation=45)
+    
+    plt.tight_layout()
+    plt.show() 
+
+
+ratios = ['Debt_Equity', 'Quick_ratio', 'ROE', 'Debt_to_EBITDA']
+
+plt.figure(figsize=(15, 8))
+for i, col in enumerate(ratios, 1):
+    plt.subplot(2, 2, i)
+    sns.boxplot(y=df[col])
+    plt.title(f'Distribution of {col}')
+plt.tight_layout()
+plt.show()
+
+
+
+if 'Year' in df.columns:
+    metrics = ['Revenue', 'Total_Assets', 'EBITDA']
+    
+    plt.figure(figsize=(15, 5))
+    for i, col in enumerate(metrics, 1):
+        plt.subplot(1, 3, i)
+        df.groupby('Year')[col].median().plot()
+        plt.title(f'Median {col} by Year')
+    plt.tight_layout()
+    plt.show()
+
+plt.figure(figsize=(20, 15))
+corr_matrix = df[num_cols].corr()
+sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap='coolwarm', center=0)
+plt.title('Correlation Matrix of Numerical Variables', pad=20)
+plt.show()
+
+
+if 'Moodys_Credit_Rating' in df.columns:
+    plt.figure(figsize=(12, 6))
+    ax = df['Moodys_Credit_Rating'].value_counts().sort_index().plot(kind='bar')
+    plt.title('Credit Rating Distribution', fontsize=16)
+    plt.xticks(rotation=45)
+    
+    # Add percentage labels
+    total = len(df)
+    for p in ax.patches:
+        height = p.get_height()
+        ax.text(p.get_x()+p.get_width()/2., height + 3,
+                f'{height/total:.1%}', ha='center')
+    plt.show()
+
+
+
+# Lista de calificaciones de Moody's
+moodys_ratings = ['Aa3', 'Ba1', 'Ba2', 'Baa2', 'Aa2', 'Baa1', 'Baa3', 'Caa1', 'A3', 'A1', 'Aaa', 'A2', 'B2', 'B1', 'B3', 'Ba3']
+
+# Definir las categorías
+investment_grade = ['Aaa', 'Aa1', 'Aa2', 'Aa3', 'A1', 'A2', 'A3', 'Baa1', 'Baa2', 'Baa3','Ba1', 'Ba2', 'Ba3', 'B1']
+junk = ['B2', 'B3', 'Caa1', 'Caa2', 'Caa3', 'Ca', 'C']
+
+# Función para clasificar las calificaciones
+def classify_rating(rating):
+    if rating in investment_grade:
+        return 1 #Investment Grade
+    else:  #Todo lo demás (incluyendo Unknown) será Junk
+        return 0 #Junk
+
+# Aplicar la función al DataFrame
+df['Moodys_Credit_Rating_Category'] = df['Moodys_Credit_Rating'].apply(classify_rating)
+
+# Verificar los resultados
+print(df.head())
+print(df['Moodys_Credit_Rating_Category'].value_counts())
+
+
+
+# Drop rows with any missing values
+df = df.dropna()
+
+""" from scipy.stats import zscore
+
+#Handeling missing values
+for col in ['Volume', 'EBIT', 'ROE']:
+    df[col] = df[col].fillna(df[col].median())
+    
+    # Imputation with median for numerical variables
+for col in ['Revenue', 'Net Income', 'Total Assets', 'EBITDA', 'Net Debt', 'Total Equity', 'ROIC', 'EBIT', 'Net Interest', 'CAPEX', 'Total Liabilities', 'Total Debt', 'Quick Ratio', 'Cash and Equivalents', 'Marketable Securities', 'Asset Turnover', 'Net Margin', 'Debt/Equity', 'Log(Total Assets)', 'Ln(Revenue)', 'ROE', '(EBIT-CapEx)/Interest Expense', 'ROA', 'Debt to EBITDA', 'Debt Ratio', 'Debt/Book Capitalization', 'Debt/Equity Ratio', 'Debt/Total Capitalization', '(Cash + Marketable Securities) / Debt', 'Market Cap to Revenue Ratio', '(P/B) Ratio', 'Market Cap to EBITDA', 'R&D Expense']:
+    if col in df.columns:
+        df[col] = df[col].fillna(df[col].median())
+
+# Imputation with zero for Volume
+if 'Volume' in df.columns:
+    df['Volume'] = df['Volume'].fillna(0)
+
+# Imputation with mode for categorical variables
+for col in ['ESG Committee', 'International Presence', 'Developed']:
+    if col in df.columns:
+        df[col] = df[col].fillna(df[col].mode()[0])
+
+# Imputation with mode for Moody's Credit Rating
+if 'Moodys Credit Rating' in df.columns:
+    df['Moodys Credit Rating'] = df['Moodys Credit Rating'].fillna(df['Moodys Credit Rating'].mode()[0])
+
+# Imputation with median for Years in Market and ESG Risk Rating
+for col in ['ESG Risk Rating']:
+    if col in df.columns:
+        df[col] = df[col].fillna(df[col].median())
+
+# Forward/Backward Fill for GDP per Capita, Inflation Rate, Real GDP Growth Rate
+for col in ['GDP per Capita', 'Inflation Rate', 'Real GDP Growth Rate']:
+    if col in df.columns:
+        df[col] = df[col].fillna(method='ffill').fillna(method='bfill')"""
+        
+#! Handeling the outliers and log of the metrics
+""" # Function to remove outliers using IQR method
+def remove_outliers_iqr(df, col):
+    Q1 = df[col].quantile(0.25)
+    Q3 = df[col].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    return df[(df[col] >= lower_bound) & (df[col] <= upper_bound)]
+
+# Apply log transformation to specified columns
+log_cols = ['Revenue', 'Total Assets', 'Current Market Cap', 'Volume', 'EBITDA', 'Total Equity', 'Total Liabilities', 'Total Debt', 'Cash and equiv', 'Mkt securities', 'R&D expense']
+for col in log_cols:
+    if col in df.columns:
+        df[col] = np.log1p(df[col])
+
+# Remove outliers from specified columns
+outlier_cols = ['Revenue', 'Net Income/Net Profit (Losses)', 'Total Assets', 'Current Market Cap', 'Volume', 'EBITDA', 'Net Debt', 'Total Equity', 'ROIC', 'EBIT', 'Net interest', 'CAPEX', 'Total Liabilities', 'Total Debt', 'Quick ratio', 'Cash and equiv', 'Mkt securities', 'Asset Turnover', 'Net marging', 'Debt/Equity', 'ROE', '(EBIT-CapEx)/Interest Expense', 'ROA', 'Debt to EBITDA', 'Debt Ratio', 'Debt/Book Capitalization', 'Debt/Equity Ratio', 'Debt/Total Capitalization', '(Cash + Marketable Securities) / Debt', 'Market Cap to Revenue ratio', '(P/B) ratio', 'Market Cap to EBITDA', 'R&D expense']
+for col in outlier_cols:
+    if col in df.columns:
+        df = remove_outliers_iqr(df, col)  """
+
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, confusion_matrix
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+import pandas as pd
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+import numpy as np
+
+# Rename columns to be compatible with patsy formula syntax
+df.columns = [col.replace(' ', '_').replace('/', '_').replace('(', '').replace(')', '').replace('-', '_').replace('+', 'plus').replace('&', 'and').replace('__', '_') for col in df.columns]
+
+# 1. Data Preparation
+# Drop unnecessary columns
+df = df.drop(columns=['Company', 'Ticker', 'Moodys_Credit_Rating'])
+
+# Ensure 'Year' is treated as a numeric type if intended to be used in the model
+df['Year'] = df['Year'].astype(int)
+
+# Standardize numeric features (excluding target)
+numeric_cols = [col for col in df.select_dtypes(include=['float64', 'int64']).columns
+               if col != 'Moodys_Credit_Rating_Category']
+scaler = StandardScaler()
+df[numeric_cols] = scaler.fit_transform(df[numeric_cols])
+
+# Define the mapping of countries to codes
+country_mapping = {
+    'USA': 1, 'South Korea': 2, 'Italy': 3, 'China': 4, 'Taiwan': 5,
+    'Japan': 6, 'Switzerland': 7, 'Netherlands': 8, 'Sweden': 9, 'France': 10,
+    'Spain': 11, 'Austria': 12, 'Germany': 13, 'Indonesia': 14, 'Argentina': 15,
+    'Uruguay': 16, 'Singapore': 17, 'India': 18, 'Thailand': 19, 'Finland': 20,
+    'Brazil': 21, 'United Kingdom': 22, 'Chile': 23
+}
+
+# Replace country names with their corresponding codes
+df['Country'] = df['Country'].replace(country_mapping)
+
+# Drop the 'Moodys_Credit_Rating_Category' column
+X = df.drop(['Moodys_Credit_Rating_Category'], axis=1)
+
+df.describe()
+df.to_csv('scaled_data.csv', index=False)
+
+# Ensure all columns are numeric
+X = X.apply(pd.to_numeric, errors='coerce')
+
+# Simplify the model by selecting a subset of features
+selected_features = [
+    'Year', 'Revenue', 'Net_Income_Net_Profit_Losses', 'Total_Assets',
+    'Current_Market_Cap', 'Volume', 'EBITDA', 'Net_Debt', 'Total_Equity',
+    'ROIC', 'EBIT', 'Net_interest', 'CAPEX', 'Total_Liabilities', 'Total_Debt',
+    'Quick_ratio', 'Cash_and_equiv', 'Mkt_securities', 'Asset_Turnover', 'Net_marging',
+    'Debt_Equity', 'LogTotal_Assets', 'Lnrevenue', 'ROE', 'EBIT_CapEx_Interest_Expense',
+    'ROA', 'Debt_to_EBITDA', 'Debt_Ratio', 'Debt_Book_Capitalization', 'Debt_Equity_Ratio',
+    'Debt_Total_Capitalization', 'Cash_plus_Marketable_Securities_Debt',
+    'Market_Cap_to_Revenue_ratio', 'P_B_ratio', 'GDP_per_Capita', 'Inflation_Rate',
+    'Real_GDP_Growth_Rate', 'ESG_Committee', 'International_presence', 'Years_in_Market',
+    'ESG_Risk_Rating', 'Developed', 'Market_Cap_to_EBITDA', 'RandD_expense'
+]
+
+# Ensure selected features are in the DataFrame
+selected_features = [col for col in selected_features if col in X.columns]
+
+formula = "Moodys_Credit_Rating_Category ~ " + " + ".join(selected_features)
+print(formula)
+
+# Fit the model with regularization
+logit_model = smf.logit(formula, data=df).fit_regularized(disp=False)
+print(logit_model.summary())
+
+# Extract coefficients and p-values
+coefficients = logit_model.params
+p_values = logit_model.pvalues
+
+# Create a DataFrame for the coefficients and p-values
+coef_df = pd.DataFrame({
+    'Feature': coefficients.index,
+    'Coefficient': coefficients.values,
+    'P-Value': p_values.values
+})
+
+# Filter for significant predictors (p-value < 0.05)
+significant_predictors = coef_df[coef_df['P-Value'] < 0.05]
+
+# Sort by the absolute value of the coefficients
+significant_predictors = significant_predictors.reindex(significant_predictors['Coefficient'].abs().sort_values(ascending=False).index)
+
+# Plot the significant predictors
+plt.figure(figsize=(10, 8))
+plt.barh(significant_predictors['Feature'], significant_predictors['Coefficient'], color='skyblue')
+plt.xlabel('Coefficient Value')
+plt.title('Significant Predictors in Logistic Regression Model')
+plt.gca().invert_yaxis()  # Reverse the order to show the most significant at the top
+plt.show()
+
+# 3. Scikit-learn Logistic Regression (for sklearn metrics)
+X = df[selected_features]
+y = df['Moodys_Credit_Rating_Category']
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Sklearn model with regularization
+model = LogisticRegression(
+    penalty='l2',
+    C=1.0,
+    class_weight='balanced',
+    solver='liblinear',
+    max_iter=1000  # Increase the number of iterations
+)
+model.fit(X_train, y_train)
+
+# Predictions and metrics
+y_pred = model.predict(X_test)
+y_prob = model.predict_proba(X_test)[:, 1]
+
+print("\nSklearn Metrics:")
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("ROC AUC:", roc_auc_score(y_test, y_prob))
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, cross_val_score, RandomizedSearchCV
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, BaggingClassifier, GradientBoostingClassifier
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+from sklearn.metrics import accuracy_score, classification_report, roc_auc_score, confusion_matrix
+
+# Define the target variable (e.g., Moody's Credit Rating)
+target_column = 'Moodys_Credit_Rating_Category'
+
+X = df[selected_features]
+y = df['Moodys_Credit_Rating_Category']
+
+# Split the data into training (70%) and temporary (30%) sets
+X_train, X_temp, y_train, y_temp = train_test_split(
+    X, y, test_size=0.3, random_state=42, stratify=y
+)
+
+# Then, split the temporary set into validation (15%) and test (15%) sets
+X_val, X_test, y_val, y_test = train_test_split(
+    X_temp, y_temp, test_size=0.5, random_state=42, stratify=y_temp
+)
+
+print("Data standardization and splitting completed.")
+
+# Store evaluation results
+evaluation_results = []
+
+#* Define the Bagging model
+bagging_model = BaggingClassifier(
+    estimator=RandomForestClassifier(n_estimators=100, random_state=42),
+    n_estimators=10,
+    random_state=42
+)
+
+# Train the Bagging model
+bagging_model.fit(X_train, y_train)
+
+# Perform cross-validation for the Bagging model
+cv_scores_bagging = cross_val_score(bagging_model, X_train, y_train, cv=5, scoring='accuracy')
+cv_mean_bagging = cv_scores_bagging.mean()
+cv_std_bagging = cv_scores_bagging.std()
+
+# Evaluate the Bagging model on the validation set
+y_pred_bagging = bagging_model.predict(X_val)
+accuracy_bagging = accuracy_score(y_val, y_pred_bagging)
+report_bagging = classification_report(y_val, y_pred_bagging, output_dict=True)
+roc_auc_bagging = roc_auc_score(y_val, bagging_model.predict_proba(X_val)[:, 1])
+
+# Append the Bagging model's results to the evaluation results
+evaluation_results.append([
+    "Bagging Model",
+    cv_mean_bagging,
+    cv_std_bagging,
+    accuracy_bagging,
+    report_bagging['weighted avg']['precision'],
+    report_bagging['weighted avg']['recall'],
+    report_bagging['weighted avg']['f1-score'],
+    roc_auc_bagging
+])
+
+#* Initialize models including Logistic Regression
+
+# Define a pipeline for Logistic Regression with regularization and scaling
+log_reg_pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('classifier', LogisticRegression(max_iter=1000, random_state=42, penalty='l2', solver='liblinear'))
+])
+
+# Initialize models including the pipeline for Logistic Regression
+models = {
+    "Logistic Regression": log_reg_pipeline,
+    "Random Forest": RandomForestClassifier(random_state=42),
+    "Gradient Boosting": GradientBoostingClassifier(random_state=42),
+    "XGBoost": XGBClassifier(random_state=42, eval_metric='logloss'),
+    "LightGBM": LGBMClassifier(random_state=42),
+}
+
+# Train and evaluate each model using cross-validation
+for model_name, model in models.items():
+    # Perform cross-validation
+    cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='accuracy')
+    cv_mean = cv_scores.mean()
+    cv_std = cv_scores.std()
+
+    # Train the model on the full training set
+    model.fit(X_train, y_train)
+
+    # Evaluate the model on the validation set
+    y_pred = model.predict(X_val)
+    accuracy = accuracy_score(y_val, y_pred)
+
+    # Get classification report
+    report = classification_report(y_val, y_pred, output_dict=True)
+    precision = report['weighted avg']['precision']
+    recall = report['weighted avg']['recall']
+    f1 = report['weighted avg']['f1-score']
+
+    # Calculate ROC AUC score
+    roc_auc = roc_auc_score(y_val, model.predict_proba(X_val)[:, 1])
+
+    # Store results
+    evaluation_results.append([model_name, cv_mean, cv_std, accuracy, precision, recall, f1, roc_auc])
+
+# Define the parameter grid with more options
+param_dist = {
+    'n_estimators': [int(x) for x in np.linspace(start=100, stop=500, num=5)],
+    'max_depth': [int(x) for x in np.linspace(10, 110, num=10)] + [None],
+    'min_samples_split': [2, 5, 10, 15, 20],
+    'min_samples_leaf': [1, 2, 5, 10],
+    'bootstrap': [True, False],
+    'criterion': ['gini', 'entropy']
+}
+
+#* Hyperparameter tuning for a Random Forest classifier
+# Initialize RandomizedSearchCV
+random_search = RandomizedSearchCV(
+    estimator=RandomForestClassifier(random_state=42),
+    param_distributions=param_dist,
+    n_iter=50,  # Number of parameter settings to sample
+    cv=5,  # Number of cross-validation folds
+    n_jobs=-1,  # Use all available cores
+    verbose=2,
+    random_state=42
+)
+
+# Perform the randomized search
+random_search.fit(X_train, y_train)
+print("Best Parameters:", random_search.best_params_)
+print("Best Score:", random_search.best_score_)
+
+# Evaluate the best model from RandomizedSearchCV
+best_rf_model = random_search.best_estimator_
+
+# Perform cross-validation for the best Random Forest model
+cv_scores_best_rf = cross_val_score(best_rf_model, X_train, y_train, cv=5, scoring='accuracy')
+cv_mean_best_rf = cv_scores_best_rf.mean()
+cv_std_best_rf = cv_scores_best_rf.std()
+
+# Evaluate the best Random Forest model on the validation set
+y_pred_best_rf = best_rf_model.predict(X_val)
+accuracy_best_rf = accuracy_score(y_val, y_pred_best_rf)
+report_best_rf = classification_report(y_val, y_pred_best_rf, output_dict=True)
+roc_auc_best_rf = roc_auc_score(y_val, best_rf_model.predict_proba(X_val)[:, 1])
+
+# Append the best Random Forest model's results to the evaluation results
+evaluation_results.append([
+    "Tuned Random Forest Model",
+    cv_mean_best_rf,
+    cv_std_best_rf,
+    accuracy_best_rf,
+    report_best_rf['weighted avg']['precision'],
+    report_best_rf['weighted avg']['recall'],
+    report_best_rf['weighted avg']['f1-score'],
+    roc_auc_best_rf
+])
+
+
+# 1. First find the best model's parameters from your existing results
+best_model_info = max(evaluation_results, key=lambda x: x[1])
+best_model_name = best_model_info[0]
+print(f"Best model name: '{best_model_name}'")
+
+# 2. Get the ACTUAL best model (not a new instance)
+if "Bagging" in best_model_name:
+    best_model = bagging_model  # Use your existing model
+elif "Random Forest" in best_model_name:
+    # If you have a tuned random forest model, use THAT specific instance
+    best_model = random_search.best_estimator_  # From your RandomizedSearchCV
+elif "Gradient" in best_model_name:
+    best_model = GradientBoostingClassifier(random_state=42)  # Or your tuned version
+elif "XGBoost" in best_model_name:
+    best_model = XGBClassifier(random_state=42, eval_metric='logloss')  # Or tuned version
+elif "LightGBM" in best_model_name:
+    best_model = LGBMClassifier(random_state=42)  # Or tuned version
+else:
+    raise ValueError(f"Unknown model name: {best_model_name}")
+
+# Train the best model on the full training set
+best_model.fit(X_train, y_train)
+
+# 2. Train and evaluate
+y_pred_best = best_model.predict(X_val)
+accuracy_best = accuracy_score(y_val, y_pred_best)
+report_best = classification_report(y_val, y_pred_best, output_dict=True)
+roc_auc_best = roc_auc_score(y_val, best_model.predict_proba(X_val)[:, 1])
+
+# 3. Compute CV mean and std for the best model
+cv_scores = cross_val_score(best_model, X_train, y_train, cv=5, scoring='accuracy')
+cv_mean = cv_scores.mean()
+cv_std = cv_scores.std()
+
+# Print evaluation metrics for the best model
+print("Best Model - Validation Accuracy:", accuracy_best)
+print("Best Model - Classification Report:\n", classification_report(y_val, y_pred_best))
+print("Best Model - ROC AUC:", roc_auc_best)
+
+# Feature Importance
+if hasattr(best_model, "feature_importances_"):
+    importances = best_model.feature_importances_
+    feature_names = X_train.columns
+    feature_importance_df = pd.DataFrame({'Feature': feature_names, 'Importance': importances})
+    feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
+    print("Feature Importances:\n", feature_importance_df)
+else:
+    print("Feature importances are not available for this model.")
+
+# Append the best model's results to the evaluation results
+evaluation_results.append([
+    best_model_name + " (Best Model)",
+    cv_mean,  # Use the best CV score
+    cv_std,
+    accuracy_best,
+    report_best['weighted avg']['precision'],
+    report_best['weighted avg']['recall'],
+    report_best['weighted avg']['f1-score'],
+    roc_auc_best
+])
+        
+
+# Create a DataFrame for evaluation results
+columns = ["Model", "CV Mean Accuracy", "CV Std Accuracy", "Validation Accuracy", "Precision", "Recall", "F1-Score", "ROC-AUC"]
+evaluation_df = pd.DataFrame(evaluation_results, columns=columns)
+
+# Display the DataFrame
+evaluation_df
+        
+evaluation_df = pd.DataFrame(evaluation_results, columns=[
+    "Model", "CV Mean", "CV Std", "Accuracy", "Precision", "Recall", "F1-Score", "ROC AUC"
+])
+evaluation_df.set_index("Model").plot(kind='bar', figsize=(12, 8))
+plt.title("Model Evaluation Metrics")
+plt.ylabel("Score")
+plt.xticks(rotation=45)
+plt.legend(title="Metrics")
+plt.show()
+
+# Function to plot ROC-AUC for binary classification
+def plot_binary_roc_auc(y_true, y_proba, model_name, roc_auc):
+    fpr, tpr, _ = roc_curve(y_true, y_proba)
+    plt.plot(fpr, tpr, label=f"{model_name} (AUC = {roc_auc:.2f})")
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(f'{model_name} ROC-AUC Curve')
+    plt.legend(loc='best')
+    plt.show()
+
+# Plot ROC-AUC for each model
+for model_name, model in models.items():
+    y_pred_proba = model.predict_proba(X_val)[:, 1]  # Use the probability of the positive class
+    roc_auc = roc_auc_score(y_val, y_pred_proba)
+    plot_binary_roc_auc(y_val, y_pred_proba, model_name, roc_auc)
+
+# Plot ROC-AUC for the best model from GridSearchCV
+y_pred_proba_best = best_model.predict_proba(X_val)[:, 1]  # Use the probability of the positive class
+roc_auc_best = roc_auc_score(y_val, y_pred_proba_best)
+plot_binary_roc_auc(y_val, y_pred_proba_best, "Best Model", roc_auc_best)
+
+# Check if the model has feature importances
+if hasattr(best_model, "feature_importances_"):
+    # Create a DataFrame for feature importances
+    feature_importance_df = pd.DataFrame({
+        'Feature': X.columns,  # Replace X with your feature matrix
+        'Importance': best_model.feature_importances_
+    }).sort_values(by='Importance', ascending=False)
+    
+    # Filter out the unwanted features
+    features_to_exclude = ['Category_Moodys_3', 'Category_Moodys_2', 'Category_Moodys_1']
+    filtered_feature_importance_df = feature_importance_df[~feature_importance_df['Feature'].isin(features_to_exclude)]
+
+    # Sort the filtered DataFrame by importance
+    filtered_feature_importance_df = filtered_feature_importance_df.sort_values(by='Importance', ascending=False)
+    
+    # Create a larger figure
+    plt.figure(figsize=(10, 8))  # Adjust the size as needed (width, height)
+
+    # Plot the feature importances
+    sns.barplot(x='Importance', y='Feature', data=filtered_feature_importance_df, orient='h')
+
+    # Adjust layout to prevent overlapping labels
+    plt.tight_layout()
+
+    # Add title and labels
+    plt.title("Feature Importances", fontsize=16)
+    plt.xlabel("Importance", fontsize=14)
+    plt.ylabel("Feature", fontsize=14)
+
+    # Show the plot
+    plt.show()
+
+
+
+from scipy.stats import ttest_rel, f_oneway  # For statistical tests
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier  # For feature importances
+
+# Example: Hypothesis 1 - Paired t-test for accuracy
+ensemble_accuracies = [result[3] for result in evaluation_results if "Random Forest" in result[0] or "Gradient Boosting" in result[0] or "XGBoost" in result[0] or "LightGBM" in result[0]]
+traditional_accuracies = [result[3] for result in evaluation_results if "Logistic Regression" in result[0]]
+
+t_stat, p_value = ttest_rel(ensemble_accuracies, traditional_accuracies)
+print(f"Hypothesis 1 - Paired t-test: t-statistic = {t_stat}, p-value = {p_value}")
+
+# Example: Hypothesis 2 - ANOVA for feature importance
+# Assuming you have feature importances extracted from the best model
+importances = best_model.feature_importances_
+feature_names = X_train.columns
+
+# Separate importances into macroeconomic and financial groups
+macro_features = ['GDP_per_Capita', 'Inflation_Rate', 'Real_GDP_Growth_Rate']
+financial_features = ['Debt_Equity', 'ROE', 'Net_marging']
+
+macro_importances = [importances[feature_names.get_loc(feature)] for feature in macro_features]
+financial_importances = [importances[feature_names.get_loc(feature)] for feature in financial_features]
+
+f_stat, p_value = f_oneway(macro_importances, financial_importances)
+print(f"Hypothesis 2 - ANOVA: F-statistic = {f_stat}, p-value = {p_value}")
+
+
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.model_selection import train_test_split
+
+# Feature selection
+selector = SelectKBest(f_classif, k=20)  # Select top 20 features
+X_reduced = selector.fit_transform(X, y)
+
+# Compare performance
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train_red, X_test_red = selector.transform(X_train), selector.transform(X_test)
+
+full_model = RandomForestClassifier(random_state=42).fit(X_train, y_train)
+reduced_model = RandomForestClassifier(random_state=42).fit(X_train_red, y_train)
+
+print(f"Full model accuracy: {full_model.score(X_test, y_test):.4f}")
+print(f"Reduced model accuracy: {reduced_model.score(X_test_red, y_test):.4f}")
+
+# Split data by rating class
+X_good = X[y == 1]  # Investment grade
+y_good = y[y == 1]
+X_poor = X[y == 0]   # Junk
+y_poor = y[y == 0]
+
+# Evaluate on each subset
+good_scores = cross_val_score(RandomForestClassifier(random_state=42), 
+                             X_good, y_good, cv=5)
+poor_scores = cross_val_score(RandomForestClassifier(random_state=42), 
+                             X_poor, y_poor, cv=5)
+
+print(f"Good rating accuracy: {np.mean(good_scores):.4f}")
+print(f"Poor rating accuracy: {np.mean(poor_scores):.4f}")
+print(f"Difference: {np.mean(good_scores)-np.mean(poor_scores):.4f}")
+
+
+# Define regions
+latin_america = [15, 16, 21, 23]  # Argentina, Uruguay, Brazil, Chile
+developed = [1, 6, 7, 8, 9, 10, 11, 12, 13, 22]  # USA, Japan, EU countries
+
+# Feature groups
+macro_features = ['GDP_per_Capita', 'Inflation_Rate', 'Real_GDP_Growth_Rate']
+financial_features = ['Debt_Equity', 'ROE', 'Net_marging']
+
+# Regional analysis
+for region, name in [(latin_america, 'Latin America'), (developed, 'Developed')]:
+    mask = df['Country'].isin(region)
+    X_region = X[mask]
+    y_region = y[mask]
+    
+    model = RandomForestClassifier(random_state=42).fit(X_region, y_region)
+    importances = model.feature_importances_
+    
+    macro_imp = np.mean([importances[X.columns.get_loc(f)] for f in macro_features])
+    financial_imp = np.mean([importances[X.columns.get_loc(f)] for f in financial_features])
+    
+    print(f"\n{name} Region:")
+    print(f"Mean Macro Importance: {macro_imp:.4f}")
+    print(f"Mean Financial Importance: {financial_imp:.4f}")
+    print(f"Ratio (Macro/Financial): {macro_imp/financial_imp:.2f}")
+
+from scipy.stats import mannwhitneyu
+import numpy as np
+
+# Define regions
+latin_america = [15, 16, 21, 23]  # Argentina, Uruguay, Brazil, Chile
+developed = [1, 6, 7, 8, 9, 10, 11, 12, 13, 22]  # USA, Japan, EU countries
+
+# Feature groups
+macro_features = ['GDP_per_Capita', 'Inflation_Rate', 'Real_GDP_Growth_Rate']
+financial_features = ['Debt_Equity', 'ROE', 'Net_marging']
+
+# Initialize storage for importance values
+lat_macro_imps = []
+lat_financial_imps = []
+dev_macro_imps = []
+dev_financial_imps = []
+
+# Regional analysis
+for region, name in [(latin_america, 'Latin America'), (developed, 'Developed')]:
+    mask = df['Country'].isin(region)
+    X_region = X[mask]
+    y_region = y[mask]
+    
+    model = RandomForestClassifier(random_state=42).fit(X_region, y_region)
+    importances = model.feature_importances_
+    
+    # Get individual feature importances
+    current_macro = [importances[X.columns.get_loc(f)] for f in macro_features]
+    current_financial = [importances[X.columns.get_loc(f)] for f in financial_features]
+    
+    # Store for statistical testing
+    if name == 'Latin America':
+        lat_macro_imps = current_macro
+        lat_financial_imps = current_financial
+    else:
+        dev_macro_imps = current_macro
+        dev_financial_imps = current_financial
+    
+    # Calculate means
+    macro_imp = np.mean(current_macro)
+    financial_imp = np.mean(current_financial)
+    
+    print(f"\n{name} Region:")
+    print(f"Mean Macro Importance: {macro_imp:.4f}")
+    print(f"Mean Financial Importance: {financial_imp:.4f}")
+    print(f"Ratio (Macro/Financial): {macro_imp/financial_imp:.2f}")
+
+# Statistical tests
+print("\nStatistical Comparisons:")
+# 1. Compare macro importance between regions
+u_stat, p_value = mannwhitneyu(lat_macro_imps, dev_macro_imps)
+print(f"Macro Importance (Latin America vs Developed):")
+print(f"U-statistic = {u_stat:.3f}, p-value = {p_value:.4f}")
+
+# 2. Compare financial importance between regions
+u_stat, p_value = mannwhitneyu(lat_financial_imps, dev_financial_imps)
+print(f"\nFinancial Importance (Latin America vs Developed):")
+print(f"U-statistic = {u_stat:.3f}, p-value = {p_value:.4f}")
+
+# 3. Compare macro/financial ratio within Latin America
+lat_ratio = [m/f for m,f in zip(lat_macro_imps, lat_financial_imps)]
+dev_ratio = [m/f for m,f in zip(dev_macro_imps, dev_financial_imps)]
+u_stat, p_value = mannwhitneyu(lat_ratio, dev_ratio)
+print(f"\nMacro/Financial Ratio (Latin America vs Developed):")
+print(f"U-statistic = {u_stat:.3f}, p-value = {p_value:.4f}")
+
+
